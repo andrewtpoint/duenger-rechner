@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Düngerdosierung Rechner</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 1.5rem; background:#f5f5f5; }
+    .app { max-width: 480px; margin: 0 auto; background:#fff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    h1 { font-size: 1.4rem; margin-top: 0; }
+    label { display:block; font-size:0.9rem; margin-bottom:0.25rem; }
+    input, select { width:100%; padding:0.5rem 0.6rem; border-radius:8px; border:1px solid #ccc; font-size:0.95rem; box-sizing:border-box; }
+    .field { margin-bottom:1rem; }
+    .result { margin-top:1.5rem; padding:1rem; border-radius:8px; background:#f0f7ff; font-size:0.95rem; }
+    .row { display:flex; gap:0.5rem; }
+    .row .field { flex:1; margin-bottom:0; }
+    .product { margin-bottom:0.5rem; }
+    .hint { font-size:0.8rem; color:#666; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Düngerdosierung Rechner</h1>
+    <p class="hint">Basis: Biobizz Schema 2020 (ml/L Wasser). Wochen beziehen sich auf Wachstums- bzw. Blütewoche.</p>
+
+    <div class="field">
+      <label for="water">Wassermenge (Liter)</label>
+      <input id="water" type="number" min="0" step="0.1" value="10" />
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="phase">Phase</label>
+        <select id="phase">
+          <option value="veg">Vegetative Phase</option>
+          <option value="bloom">Blühphase</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="week">Woche (Alter der Pflanze)</label>
+        <input id="week" type="number" min="1" max="12" value="1" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="substrate">System</label>
+      <select id="substrate">
+        <option value="soil">Boden / Erde</option>
+        <option value="coco">Coco</option>
+        <option value="hydro">Hydro / Aeroponik</option>
+      </select>
+    </div>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    // Stark vereinfachtes Beispiel-Schema in ml/L, orientiert an Biobizz-Tabelle (nicht vollständig, nur Demo)
+    // Keys: phase-week
+    const schedule = {
+      'veg-1': { 'Bio-Grow': 1, 'Root-Juice': 2 },
+      'veg-2': { 'Bio-Grow': 2, 'Root-Juice': 2 },
+      'veg-3': { 'Bio-Grow': 3, 'Root-Juice': 2 },
+      'veg-4': { 'Bio-Grow': 4, 'Root-Juice': 1 },
+      'bloom-1': { 'Bio-Grow': 4, 'Bio-Bloom': 2, 'Top-Max': 1 },
+      'bloom-2': { 'Bio-Grow': 4, 'Bio-Bloom': 2, 'Top-Max': 2 },
+      'bloom-3': { 'Bio-Grow': 4, 'Bio-Bloom': 3, 'Top-Max': 2 },
+      'bloom-4': { 'Bio-Grow': 4, 'Bio-Bloom': 4, 'Top-Max': 3 },
+      'bloom-5': { 'Bio-Grow': 4, 'Bio-Bloom': 4, 'Top-Max': 4 },
+      'bloom-6': { 'Bio-Grow': 4, 'Bio-Bloom': 4, 'Top-Max': 4 },
+      'bloom-7': { 'Bio-Grow': 1, 'Bio-Bloom': 4, 'Top-Max': 4 },
+      'bloom-8': { }, // Spülen
+      'bloom-9': { },
+      'bloom-10': { },
+      'bloom-11': { },
+      'bloom-12': { }
+    };
+
+    const waterInput = document.getElementById('water');
+    const phaseSelect = document.getElementById('phase');
+    const weekInput = document.getElementById('week');
+    const substrateSelect = document.getElementById('substrate');
+    const resultDiv = document.getElementById('result');
+
+    function render() {
+      const water = parseFloat(waterInput.value || '0');
+      const phase = phaseSelect.value;
+      let week = parseInt(weekInput.value || '1', 10);
+      if (week < 1) week = 1;
+      if (week > 12) week = 12;
+      weekInput.value = week;
+
+      const key = `${phase}-${week}`;
+      const entry = schedule[key];
+
+      if (!entry || Object.keys(entry).length === 0) {
+        resultDiv.innerHTML = `<strong>Hinweis:</strong> Für Woche ${week} in dieser Phase ist im Schema nur Spülen mit Wasser / Ernte vorgesehen.`;
+        return;
+      }
+
+      let html = `<div><strong>Ergebnis für ${water.toFixed(1)} L Wasser, Woche ${week}, ${phase === 'veg' ? 'vegetative Phase' : 'Blühphase'}:</strong></div>`;
+      html += '<div class="hint" style="margin-top:0.5rem;">Alle Werte in ml Dünger, basierend auf ml/L aus dem Schema.</div>';
+
+      html += '<div style="margin-top:0.75rem;">';
+      for (const [product, mlPerL] of Object.entries(entry)) {
+        const total = water * mlPerL;
+        html += `<div class="product"><strong>${product}</strong>: ${total.toFixed(1)} ml (Schema: ${mlPerL} ml/L)</div>`;
+      }
+      html += '</div>';
+
+      html += `<div class="hint" style="margin-top:0.75rem;">Substrat-System: ${substrateSelect.options[substrateSelect.selectedIndex].text}. Bitte ggf. Hersteller-Hinweise für Boden/Hydro/Coco beachten.</div>`;
+
+      resultDiv.innerHTML = html;
+    }
+
+    waterInput.addEventListener('input', render);
+    phaseSelect.addEventListener('change', render);
+    weekInput.addEventListener('input', render);
+    substrateSelect.addEventListener('change', render);
+
+    render();
+  </script>
+</body>
+</html>
