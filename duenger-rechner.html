@@ -83,17 +83,27 @@
     const resultDiv = document.getElementById('result');
 
     function render() {
-      const water = parseFloat(waterInput.value || '0');
+      const water = parseFloat(waterInput.value);
       const phase = phaseSelect.value;
-      let week = parseInt(weekInput.value || '1', 10);
-      if (week < 1) week = 1;
+      let week = parseInt(weekInput.value, 10);
+      if (isNaN(week) || week < 1) week = 1;
       if (week > 12) week = 12;
       weekInput.value = week;
+
+      if (isNaN(water) || water <= 0) {
+        resultDiv.innerHTML = '<strong>Hinweis:</strong> Bitte eine gültige Wassermenge (> 0 L) eingeben.';
+        return;
+      }
 
       const key = `${phase}-${week}`;
       const entry = schedule[key];
 
-      if (!entry || Object.keys(entry).length === 0) {
+      if (!entry) {
+        resultDiv.innerHTML = `<strong>Hinweis:</strong> Für Woche ${week} in der ${phase === 'veg' ? 'vegetativen Phase' : 'Blühphase'} ist kein Schema vorhanden.`;
+        return;
+      }
+
+      if (Object.keys(entry).length === 0) {
         resultDiv.innerHTML = `<strong>Hinweis:</strong> Für Woche ${week} in dieser Phase ist im Schema nur Spülen mit Wasser / Ernte vorgesehen.`;
         return;
       }
